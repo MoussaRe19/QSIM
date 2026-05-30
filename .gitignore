@@ -1,3 +1,4 @@
 test_fel
 *.o
 *.dSYM/
+.vscode/
