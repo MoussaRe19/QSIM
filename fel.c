@@ -7,24 +7,23 @@
 
 static void swap(FEL *fel, int i, int j) {
     EventNotice *tmp = fel->heap[i];
-    fel->heap[i] = fel->heap[j]; 
+    fel->heap[i] = fel->heap[j];
     fel->heap[j] = tmp;
 
-    fel->heap[i]->heap_index = i; 
+    fel->heap[i]->heap_index = i;
     fel->heap[j]->heap_index = j;
 }
 
-static bool a_less_then_b(const EventNotice *a, const EventNotice *b) {
-    if(a->timestamp < b->timestamp) return true;
-    if(a->timestamp > b->timestamp) return false;
-
-    return a->id < b->id;
+static bool a_less_than_b(const EventNotice *a, const EventNotice *b) {
+	// TODO: turn this into a macro
+	return (a->timestamp < b->timestamp) ||
+           (a->timestamp == b->timestamp && a->id < b->id);
 }
 
 static void sift_up(FEL *fel, int idx) {
     while(idx > 0) {
-        int parent = (idx - 1) / 2; 
-        if(a_less_then_b(fel->heap[idx], fel->heap[parent])) {
+        int parent = (idx - 1) / 2;
+        if(a_less_than_b(fel->heap[idx], fel->heap[parent])) {
             swap(fel, idx, parent);
             idx = parent;
         } else {
@@ -37,14 +36,14 @@ static void sift_up(FEL *fel, int idx) {
 static void sift_down(FEL *fel, int idx) {
     int size = fel->size;
     while(1) {
-        int left = 2 * idx + 1; 
-        int right = 2 * idx + 2; 
+        int left = 2 * idx + 1;
+        int right = 2 * idx + 2;
         int smallest = idx;
 
-        if(left < size && a_less_then_b(fel->heap[left], fel->heap[smallest]))
+        if(left < size && a_less_than_b(fel->heap[left], fel->heap[smallest]))
             smallest = left;
 
-        if(right < size && a_less_then_b(fel->heap[right], fel->heap[smallest]))
+        if(right < size && a_less_than_b(fel->heap[right], fel->heap[smallest]))
             smallest = right;
 
         if(smallest != idx) {
@@ -60,15 +59,15 @@ static void sift_down(FEL *fel, int idx) {
 
 void fel_init(FEL *fel) {
     fel->capacity = FEL_INITIAL_CAPACITY;
-    fel->size = 0; 
+    fel->size = 0;
     fel->heap = (EventNotice**)malloc(fel->capacity * sizeof(EventNotice*));
-    assert(fel->heap != NULL);    
+    assert(fel->heap != NULL);
 }
 
 void fel_destroy(FEL *fel) {
-    free(fel->heap); 
+    free(fel->heap);
     fel->heap = NULL;
-    fel->size = 0; 
+    fel->size = 0;
     fel->capacity = 0;
 }
 
