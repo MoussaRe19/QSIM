@@ -7,12 +7,12 @@
 typedef void (*event_handler_t)(void *context, void *data);
 
 typedef struct EventNotice {
-    uint64_t id; 
-    double timestamp; 
-    event_handler_t handler; 
-    void *data;
-    bool valid; 
-    int heap_index;
+	uint64_t id;
+	double timestamp;
+	event_handler_t handler;
+	void *data;
+	bool valid;
+	int heap_index;
 } EventNotice;
 
 #endif

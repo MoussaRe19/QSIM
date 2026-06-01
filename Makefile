@@ -1,16 +1,30 @@
-CC      = gcc
-CFLAGS  = -std=c11 -Wall -Wextra -Wpedantic -g -fsanitize=address,undefined
+CC        = gcc
+CFLAGS    = -std=c11 -Wall -Wextra -Wpedantic -g -fsanitize=address,undefined
 
-TARGET  = test_fel
-SRC     = fel.c test_fel.c
+CORE_OBJS = fel.o clock.o context.o kernel.o
+HEADERS   = fel.h event.h context.h kernel.h
+TESTS     = test_fel test_clock
 
-all: $(TARGET)
+# Disable ASLR per-process.
+# Workaround for intermittent ASan startup crashes on this WSL2 system.
+NOASLR = setarch $(shell uname -m) -R
 
-$(TARGET): $(SRC) fel.h event.h
-	$(CC) $(CFLAGS) -o $(TARGET) $(SRC)
+all: $(TESTS)
 
-run: $(TARGET)
-	./$(TARGET)
+test: $(TESTS)
+	$(NOASLR) ./test_fel
+	$(NOASLR) ./test_clock
+
+%.o: %.c $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+test_fel: test_fel.o $(CORE_OBJS)
+	$(CC) $(CFLAGS) -o $@ $^
+
+test_clock: test_clock.o $(CORE_OBJS)
+	$(CC) $(CFLAGS) -o $@ $^
 
 clean:
-	rm -f $(TARGET)
+	rm -f *.o $(TESTS)
+
+.PHONY: all test clean
