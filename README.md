@@ -52,3 +52,31 @@
 - **Backward time protection**: Any attempt to set time backward triggers a controlled failure.
 - **Invalid scheduling rejection**: Negative delay scheduling triggers a controlled failure.
 - **Safe cancellation**: Canceled events are ignored during execution without side effects.
+
+---
+
+## Phase 3 — Dispatch Loop, Termination Contract & Rescheduling
+
+**Objective:** Implement the execution runtime by adding termination conditions, event rescheduling, and the main dispatch loop.
+
+### Components
+
+* **`TerminationCondition`**: Tagged union representing either a time limit or a predicate function used to stop execution.
+* **`InterpretResult`**: Enumeration describing successful termination or runtime failure.
+* **`dispatch_loop`**: Main event-processing loop responsible for executing scheduled events.
+
+### Key Rules
+
+| Rule                         | Description                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------ |
+| **Logarithmic Rescheduling** | `fel_reschedule` updates event priorities in $O(\log n)$ time using Phase 1 heap index tracking. |
+| **Causality Protection**     | Events scheduled before the current simulation time trigger a runtime failure.                   |
+| **Monotonic Advancement**    | The simulation clock advances only when processing the next event timestamp.                     |
+| **Domain Agnosticism**       | The engine interacts only through registered predicates and the `Context` API.                   |
+
+### Verification Criteria
+
+* **Two-Phase Termination**: Termination conditions are evaluated before event extraction and after handler execution.
+* **Reschedule Integrity**: Heap indexes remain synchronized during `sift_up` and `sift_down` operations.
+* **Lazy Cancellation Sweep**: Canceled events are skipped and reclaimed safely during extraction.
+* **Crash Isolation**: Invariant failures are captured through `setjmp`/`longjmp` without terminating the test harness.
