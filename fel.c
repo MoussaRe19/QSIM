@@ -98,6 +98,7 @@ EventNotice *fel_extract_min(FEL *fel) {
         }
         root->heap_index = -1;
         if (root->valid) return root;
+		free(root); // release canceled event
     }
     return NULL;
 }
@@ -114,6 +115,7 @@ double fel_peek(FEL *fel) {
             fel->heap[0] = NULL;
         }
         root->heap_index = -1;
+		free(root); // release canceled event
     }
     return (fel->size > 0) ? fel->heap[0]->timestamp : INFINITY;
 }
