@@ -80,3 +80,32 @@
 * **Reschedule Integrity**: Heap indexes remain synchronized during `sift_up` and `sift_down` operations.
 * **Lazy Cancellation Sweep**: Canceled events are skipped and reclaimed safely during extraction.
 * **Crash Isolation**: Invariant failures are captured through `setjmp`/`longjmp` without terminating the test harness.
+
+---
+
+## Phase 4 — PRNG & Distributions
+
+**Objective:** Build a verified stochastic foundation isolated from model logic.
+
+### Components
+
+- **`prng`**: xoshiro256** state seeded via splitmix64 expansion.
+- **`prng_uniform`**: Returns value in $(0, 1)$ with `DBL_MIN` guard against zero.
+- **`Distribution`**: Tagged union with `.sample(prng)` dispatch.
+- **`Exponential`**, **`Deterministic`**, **`Erlang`**: Concrete distribution types.
+
+### Key Rules
+
+| Rule | Description |
+|------|-------------|
+| Zero‑guard | `prng_uniform` never returns $0$ — prevents $-\mu \ln(0) = \infty$. |
+| Reproducibility | Same seed produces identical sequence across runs. |
+| Deterministic | Returns fixed value ignoring PRNG state. |
+| Erlang construction | $\text{Erlang}(k, \mu_{\text{phase}})$ samples sum of $k$ exponentials; total mean $= k \cdot \mu_{\text{phase}}$. |
+
+### Verification Criteria
+
+- **Mean convergence**: $100{,}000$ samples from $\text{Exponential}(\mu=2.0)$ have sample mean within $\pm0.01$ of $2.0$, all samples $> 0$.
+- **Reproducibility**: Two streams from same seed produce identical values.
+- **Deterministic correctness**: Always returns the fixed value regardless of PRNG state.
+- **Erlang mean**: $\text{Erlang}(k=3, \mu_{\text{phase}}=1.0)$ sample mean $\approx 3.0$.
