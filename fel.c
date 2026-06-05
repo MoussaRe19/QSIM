@@ -65,6 +65,9 @@ void fel_init(FEL *fel) {
 }
 
 void fel_destroy(FEL *fel) {
+	for (int i = 0; i < fel->size; i++) {
+		free(fel->heap[i]);
+	}
 	free(fel->heap);
 	fel->heap = NULL;
 	fel->size = 0;
@@ -99,6 +102,7 @@ EventNotice *fel_extract_min(FEL *fel) {
 		}
 		root->heap_index = -1;
 		if (root->valid) return root;
+		free(root); // release canceled event
 	}
 	return NULL;
 }
@@ -115,10 +119,52 @@ double fel_peek(FEL *fel) {
 			fel->heap[0] = NULL;
 		}
 		root->heap_index = -1;
+		free(root); // release canceled event
 	}
 	return (fel->size > 0) ? fel->heap[0]->timestamp : INFINITY;
 }
 
 void fel_cancel(EventNotice *e) {
 	e->valid = false;
+}
+
+void fel_reschedule(FEL *fel, EventNotice *e, double new_timestamp) {
+	assert(e->heap_index >= 0 && "fel_reschedule: event is not in the heap "
+	                             "(already extracted or cancelled-purged)");
+
+	assert(e->valid &&
+	       "fel_reschedule: attempt to reschedule a cancelled event");
+
+	double old_timestamp = e->timestamp;
+	e->timestamp = new_timestamp;
+
+	// heap property restoration
+	if (new_timestamp < old_timestamp)
+		sift_up(fel, e->heap_index);
+	else
+		sift_down(fel, e->heap_index);
+}
+
+double fel_peek_timestamp_dispatch(FEL *fel, double tau_max) {
+	while (fel->size > 0) {
+		EventNotice *root = fel->heap[0];
+
+		if (root->valid) return root->timestamp;
+
+		if (root->timestamp > tau_max) return root->timestamp;
+
+		/* Invalid and within horizon: purge and free. */
+		fel->size--;
+		if (fel->size > 0) {
+			fel->heap[0] = fel->heap[fel->size];
+			fel->heap[0]->heap_index = 0;
+			sift_down(fel, 0);
+		} else {
+			fel->heap[0] = NULL;
+		}
+		root->heap_index = -1;
+		free(root);
+	}
+
+	return INFINITY;
 }

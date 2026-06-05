@@ -3,28 +3,41 @@ CFLAGS    = -std=c11 -Wall -Wextra -Wpedantic -g -fsanitize=address,undefined
 
 CORE_OBJS = fel.o clock.o context.o kernel.o
 HEADERS   = fel.h event.h context.h kernel.h
-TESTS     = test_fel test_clock
+TESTS     = test_fel test_clock test_dispatch
 
-# Disable ASLR per-process.
-# Workaround for intermittent ASan startup crashes on this WSL2 system.
+BUILD_DIR = build
+OBJS      = $(patsubst %.o,$(BUILD_DIR)/%.o,$(CORE_OBJS) test_fel.o test_clock.o test_dispatch.o dispatch.o)
+BINS      = $(patsubst %,$(BUILD_DIR)/%,$(TESTS))
+
+# Disable ASLR per-process. My WSL spec :<
 NOASLR = setarch $(shell uname -m) -R
 
-all: $(TESTS)
+all: $(BINS)
 
-test: $(TESTS)
-	$(NOASLR) ./test_fel
-	$(NOASLR) ./test_clock
+test: $(BINS)
+	$(NOASLR) ./$(BUILD_DIR)/test_fel
+	$(NOASLR) ./$(BUILD_DIR)/test_clock
+	$(NOASLR) ./$(BUILD_DIR)/test_dispatch
 
-%.o: %.c $(HEADERS)
+# create build dir
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+# object files
+$(BUILD_DIR)/%.o: %.c $(HEADERS) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-test_fel: test_fel.o $(CORE_OBJS)
+# Specific target rules
+$(BUILD_DIR)/test_fel: $(BUILD_DIR)/test_fel.o $(patsubst %.o,$(BUILD_DIR)/%.o,$(CORE_OBJS))
 	$(CC) $(CFLAGS) -o $@ $^
 
-test_clock: test_clock.o $(CORE_OBJS)
+$(BUILD_DIR)/test_clock: $(BUILD_DIR)/test_clock.o $(patsubst %.o,$(BUILD_DIR)/%.o,$(CORE_OBJS))
 	$(CC) $(CFLAGS) -o $@ $^
+
+$(BUILD_DIR)/test_dispatch: $(BUILD_DIR)/test_dispatch.o $(BUILD_DIR)/dispatch.o $(patsubst %.o,$(BUILD_DIR)/%.o,$(CORE_OBJS))
+	$(CC) $(CFLAGS) -o $@ $^ -lm
 
 clean:
-	rm -f *.o $(TESTS)
+	rm -rf $(BUILD_DIR)
 
 .PHONY: all test clean

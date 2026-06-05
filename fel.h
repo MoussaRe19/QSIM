@@ -20,4 +20,7 @@ EventNotice *fel_extract_min(FEL *fel);
 double fel_peek(FEL *fel);
 void fel_cancel(EventNotice *e);
 
+void fel_reschedule(FEL *fel, EventNotice *e, double new_timestamp);
+double fel_peek_timestamp_dispatch(FEL *fel, double tau_max);
+
 #endif

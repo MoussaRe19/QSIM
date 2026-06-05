@@ -2,3 +2,6 @@ test_fel
 *.o
 *.dSYM/
 .vscode/
+test_*
+!test_*.c
+!test_*.h

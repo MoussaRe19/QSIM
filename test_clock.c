@@ -253,6 +253,7 @@ static void test_cancel_behavior(void) {
 
 		context_cancel(e2);
 		assert(e2->valid == false);
+		e2 = NULL; // ownership transferred to FEL
 
 		EventNotice *extracted = fel_extract_min(&k.fel);
 		assert(extracted == e1);
@@ -260,8 +261,7 @@ static void test_cancel_behavior(void) {
 
 		assert(fel_extract_min(&k.fel) == NULL);
 
-		free(e1);
-		free(e2);
+		free(extracted); // caller owns extracted event
 		kernel_destroy(&k);
 	}
 
@@ -277,15 +277,16 @@ static void test_cancel_behavior(void) {
 
 		context_cancel(e1);
 		assert(e1->valid == false);
+		e1 = NULL; // ownership transferred to FEL
 
-		EventNotice *extracted = fel_extract_min(&k.fel);
+		EventNotice *extracted =
+		    fel_extract_min(&k.fel); // purges and frees e1 internally
 		assert(extracted == e2);
 		assert(extracted->valid == true);
 
 		assert(fel_extract_min(&k.fel) == NULL);
 
-		free(e1);
-		free(e2);
+		free(extracted);
 		kernel_destroy(&k);
 	}
 
