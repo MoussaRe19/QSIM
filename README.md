@@ -109,3 +109,51 @@
 - **Reproducibility**: Two streams from same seed produce identical values.
 - **Deterministic correctness**: Always returns the fixed value regardless of PRNG state.
 - **Erlang mean**: $\text{Erlang}(k=3, \mu_{\text{phase}}=1.0)$ sample mean $\approx 3.0$.
+
+---
+
+## Phase 5 — M/M/1 Model
+
+**Objective:** Build the first simulation model on top of the completed engine while preserving engine-model separation through the `Context` API.
+
+### Components
+
+* **`Entity`**: Represents a customer moving through the system. Stores identifiers and service timestamps.
+
+* **`EntityQueue`**: FIFO queue used to implement first-come-first-served waiting.
+
+* **`MM1_State`**: Holds the model state:
+
+  * server status (`IDLE` or `BUSY`)
+  * waiting queue
+  * arrival and completion counters
+  * maximum observed queue length
+
+* **`Arrival Handler`**: Creates entities, updates the system state, initiates service when the server is idle, and schedules future arrivals.
+
+* **`Departure Handler`**: Completes service, removes entities from the system, transfers waiting entities into service, and releases the server when the queue becomes empty.
+
+* **`MM1_Init`**: Initializes model state, configures stochastic components, schedules the initial arrival, and transfers control to the simulation engine.
+
+### Key Rules
+
+| Rule                 | Description                                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **FCFS discipline**  | Waiting entities are served strictly in arrival order.                                                       |
+| **Single server**    | At most one entity may be in service at any time.                                                            |
+| **Engine isolation** | Model code interacts only through the `Context` API and never accesses engine internals directly.            |
+| **Entity ownership** | Entity allocation and deallocation are balanced throughout the simulation.                                   |
+| **Minimal state**    | Only operational state and raw event counts are maintained. Statistical accumulation is deferred to Phase 6. |
+
+### Verification Criteria
+
+* **Deterministic execution**: Using deterministic inter-arrival and service times produces an exactly predictable event sequence.
+
+* **Queue correctness**: FIFO ordering is preserved under arbitrary arrival and departure patterns.
+
+* **Server consistency**: The server alternates correctly between `IDLE` and `BUSY` states without invalid transitions.
+
+* **Entity lifetime**: Every created entity either waits in the queue, occupies the server, or is safely destroyed after service completion.
+
+* **Operational sanity**: Arrival and completion counters remain consistent, queue length never becomes negative, and no causality violations occur during execution.
+
