@@ -14,6 +14,4 @@ void mm1_init(MM1_Config cfg);
 
 InterpretResult mm1_run(double tau_max);
 
-void mm1_print_counts(void);
-
 #endif

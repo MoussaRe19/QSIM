@@ -56,16 +56,14 @@ double prng_uniform(PRNG *prng) {
 	return u;
 }
 
-void prng_jump(PRNG *prng)
-{
-    (void)prng;
-    /* The jump polynomial for xoshiro256** requires 4 × 64-bit coefficients
-     * published by Blackman & Vigna.  Implement when multi-stream variance
-     * reduction is needed (Phase 6+). */
-    assert(0 && "prng_jump: not yet implemented — deferred to Phase 6+");
+void prng_jump(PRNG *prng) {
+	(void)prng;
+	/* The jump polynomial for xoshiro256** requires 4 × 64-bit coefficients
+	 * published by Blackman & Vigna.  Implement when multi-stream variance
+	 * reduction is needed (Phase 6+). */
+	assert(0 && "prng_jump: not yet implemented — deferred to Phase 6+");
 }
 
-
 uint64_t prng_curseed(const PRNG *prng) {
-    return prng->initial_seed;
+	return prng->initial_seed;
 }

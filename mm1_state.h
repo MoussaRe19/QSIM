@@ -2,10 +2,13 @@
 #define MM1_STATE_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "entity.h"
 #include "entity_queue.h"
 #include "prng.h"
 #include "dist.h"
+#include "time_acc.h"
+#include "sample_acc.h"
 
 typedef enum { SERVER_IDLE, SERVER_BUSY } ServerStatus;
 
@@ -22,9 +25,21 @@ typedef struct {
 	uint64_t completions_total;
 	int max_queue_observed;
 
-	/* Temporary running sums; Phase 6 will introduce proper accumulators. */
-	double wait_time_sum;
-	double response_time_sum; // total time an entity spends in the system
+	double tau_end;
+
+	/* Accumulator activation threshold:
+	 * T_warmup = 0 disables warmup delay. */
+	bool accumulators_active;
+	double T_warmup;
+
+	/* Time-weighted performance metrics */
+	TimeAccumulator acc_queue_length; /* Lq: mean queue length */
+	TimeAccumulator acc_server_busy;  /* ρ: server utilization */
+	TimeAccumulator acc_system_count; /* L: system size */
+
+	/* Per-entity metrics */
+	SampleAccumulator acc_waiting_time;  /* Wq: waiting time */
+	SampleAccumulator acc_response_time; /* W: total time in system */
 
 	/* Optional callback before entity is freed (NULL in normal use). */
 	void (*on_departure)(const Entity *e, double now);

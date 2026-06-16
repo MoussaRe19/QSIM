@@ -22,8 +22,12 @@ void mm1_init(MM1_Config cfg) {
 	mm1_state.completions_total = 0;
 	mm1_state.max_queue_observed = 0;
 
-	mm1_state.wait_time_sum = 0.0;
-	mm1_state.response_time_sum = 0.0;
+	mm1_state.T_warmup = 0.0;
+	mm1_state.tau_end = 0.0;
+	mm1_state.accumulators_active = false;
+	sacc_init(&mm1_state.acc_waiting_time);
+	sacc_init(&mm1_state.acc_response_time);
+
 	mm1_state.on_departure = NULL;
 
 	mm1_state.arrival_dist = dist_exponential(cfg.arrival_mean);
@@ -40,6 +44,7 @@ InterpretResult mm1_run(double tau_max) {
 
 	TerminationCondition tc = tc_time_based(tau_max);
 	InterpretResult r = dispatch_loop(&ctx, &tc);
+	mm1_state.tau_end = context_now(&ctx);
 
 	/* Simulation ended with entities still alive — free them. */
 	if (mm1_state.in_service != NULL) {
@@ -51,26 +56,4 @@ InterpretResult mm1_run(double tau_max) {
 
 	kernel_destroy(&k);
 	return r;
-}
-
-void mm1_print_counts(void) {
-	printf("\n=== M/M/1 Simulation Summary ===\n");
-	printf("Arrivals            : %" PRIu64 "\n", mm1_state.arrivals_total);
-	printf("Completions         : %" PRIu64 "\n", mm1_state.completions_total);
-	printf("Max Queue Length    : %d\n", mm1_state.max_queue_observed);
-
-	if (mm1_state.completions_total == 0) {
-		printf("Mean Wait Time      : N/A\n");
-		printf("Mean Response Time  : N/A\n");
-		printf("===============================\n");
-		return;
-	}
-
-	printf("Mean Wait Time      : %.6f\n",
-	       mm1_state.wait_time_sum / (double)mm1_state.completions_total);
-
-	printf("Mean Response Time  : %.6f\n",
-	       mm1_state.response_time_sum / (double)mm1_state.completions_total);
-
-	printf("===============================\n");
 }
