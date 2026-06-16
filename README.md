@@ -157,3 +157,49 @@
 
 * **Operational sanity**: Arrival and completion counters remain consistent, queue length never becomes negative, and no causality violations occur during execution.
 
+---
+
+## Phase 6 — Statistical Layer
+
+**Objective:** Add runtime measurement of M/M/1 performance metrics using time-weighted and sample-based accumulation.
+
+---
+
+### Components
+
+- **`TimeAccumulator`**: Tracks time-weighted system state using piecewise integration over event intervals.
+    
+    - Computes $L$, $L_q$, and $\rho$.
+        
+- **`SampleAccumulator`**: Computes per-customer metrics using Welford’s online algorithm.
+    
+    - Tracks $W$ and $W_q$.
+        
+- **`MM1_Report`**: Final snapshot structure used for reporting and test validation.
+    
+
+---
+
+### Key Rules
+
+|Rule|Description|
+|---|---|
+|**Separation of concerns**|Accumulators are model state only; no access to FEL, kernel, or clock.|
+|**Latch order**|`latch_accumulators()` executes before any state mutation in event handlers.|
+|**Time integration**|All time-weighted metrics use $(t - t_{prev}) \cdot state$.|
+|**Welford update**|$W$ and $W_q$ are computed using online mean/variance updates.|
+|**Warmup filter**|All observations where $t < T_{warmup}$ are ignored.|
+
+---
+
+### Verification Criteria
+
+- **Time correctness**: $L$, $L_q$, and $\rho$ match discrete-event integration.
+    
+- **Sample correctness**: $W$, $W_q$ match batch computation within tolerance.
+    
+- **Warmup behavior**: No contribution from pre-warmup events.
+    
+- **Invariant checks**: $W \ge W_q$ and $L \ge L_q$ always hold.
+    
+- **Isolation**: Model-side code must not access engine internals directly.
